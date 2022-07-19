@@ -2,9 +2,7 @@ import telebot
 from telebot import types
 
 bot = telebot.TeleBot('5398572755:AAG2j8S0M_OY71TrlWv1dZx0hBgx2lFruZ4')
-
 IDEAS_ID = "-1001756194402" #узнать можно этим же ботом
-
 Flag = False
 
 #text:
@@ -33,6 +31,7 @@ def start(message):
     markup.add(idea, job, navi)
     bot.send_message(message.chat.id, mess, reply_markup=markup)
 
+
 @bot.message_handler(commands=['назад','help','info'])
 def start(message):
     mess = f'{message.from_user.first_name}, вот что умеет бот:' + "\n\n/Идея - предложить свою(или чужую) идею/наработки/статью(хоть с хабра)\n\n" \
@@ -44,6 +43,7 @@ def start(message):
     navi = types.KeyboardButton(NaviText)
     markup.add(idea, job, navi)
     bot.send_message(message.chat.id, mess, reply_markup=markup)
+
 
 @bot.message_handler(commands=['pass'])
 def getuser(message):
