@@ -1,6 +1,5 @@
 import telebot
 import os
-from flask import Flask, request
 import logging
 from telebot import types
 
@@ -149,25 +148,5 @@ def sendPhoto(message):
         bot.send_message(message.chat.id, mess, parse_mode='html')
         bot.send_message(IDEAS_ID,f'<b>Видео от <u>{message.from_user.first_name}</u></b> @{message.from_user.username} \n\n',parse_mode='html')
         bot.send_video(IDEAS_ID, message.video.file_id)
-
-
-if "HEROKU" in list(os.environ.keys()):
-    logger = telebot.logger
-    telebot.logger.setLevel(logging.INFO)
-
-    server = Flask(__name__)
-    @server.route("/bot", methods=['POST'])
-    def getMessage():
-        bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
-        return "!", 200
-    @server.route("/")
-    def webhook():
-        bot.remove_webhook()
-        bot.set_webhook(url="https://dashboard.heroku.com/apps/i1bottt") # этот url нужно заменить на url вашего Хероку приложения
-        return "?", 200
-    server.run(host="0.0.0.0", port=os.environ.get('PORT', 80))
-else:
-    # если переменной окружения HEROKU нету, значит это запуск с машины разработчика.
-    # Удаляем вебхук на всякий случай, и запускаем с обычным поллингом.
-    bot.remove_webhook()
-    bot.polling(none_stop=True)
+        
+bot.polling(none_stop=True)
