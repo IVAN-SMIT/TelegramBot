@@ -2,17 +2,27 @@ import telebot
 import os
 import logging
 from telebot import types
+from deepface import DeepFace
 
 
-bot = telebot.TeleBot('5398572755:AAG2j8S0M_OY71TrlWv1dZx0hBgx2lFruZ4')
+PORT = int(os.environ.get('PORT', 5000))
+
+TOKEN = '5398572755:AAG2j8S0M_OY71TrlWv1dZx0hBgx2lFruZ4'
+bot = telebot.TeleBot(TOKEN)
 IDEAS_ID = "-1001756194402" #узнать можно этим же ботом
+
+#flags:
 Flag = False
+checker = False
+secondWaiter = False
+ready = False
 
 #text:
 jobtext = '/Cотрудничество'
 ideaText = '/Идея'
 NaviText = '/Навигатор'
 EnterText = '/Готово'
+TestText = '/Тест'
 
 #links:
 urlCh ="https://www.youtube.com/channel/UCCO8KsSH45_YMF0coYFY89Q"
@@ -89,6 +99,21 @@ def navigateButtons(message):
         markup.add(types.InlineKeyboardButton("Telegram (ну мало ли)", url=urlTG))
         bot.send_message(message.chat.id, "Вот ссылки на все актуальные соцсети, не теряй", reply_markup=markup)
 
+
+@bot.message_handler(commands=["Тест"])
+def faseID(message):
+    global checker
+    checker = True
+    mess = f'Добро пожаловать в секретную функцию этого бота! Данный алгоритм - распознавание лиц - будет почти без изменений находиться в новом шлеме экзоскелета, который мы сейчас создаем. ' \
+           f'Лица будут распознаваться с помощью настоящего искусственного интеллекта, все по взрослому😎\n\n' \
+           f'Отправь  <b><u>ОДНО ФОТО</u></b>  лица человека  <b><u>БЕЗ ПОДПИСЕЙ</u></b>  и следуй дальнейшим инструкциям\n\n' \
+           f'Еще важно чтобы фото было четкое, как на паспорт, чтобы нейросеть точно узнала в вас человека'
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(types.KeyboardButton("/назад"))
+    bot.send_message(message.chat.id, mess, parse_mode='html', reply_markup=markup)
+
+
+
 @bot.message_handler(commands=["Текст","Видео","Фото"])
 def navigateButtons(message):
     global  Flag
@@ -131,13 +156,81 @@ def sendText(message):
 
 
 @bot.message_handler(content_types=['photo'])
-def sendPhoto(message):
+def checkFaces(message):
+    global checker
+    global secondWaiter
+    global ready
     global Flag
-    mess = f'Спасибо, {message.from_user.first_name}!' + "\n\nВозможно, это будет служить вдохновением для какого-нибудь из дальнейших проектов"
-    if Flag == True:
-        bot.send_message(message.chat.id, mess, parse_mode='html')
-        bot.send_message(IDEAS_ID,f'<b>Фото от <u>{message.from_user.first_name}</u></b> @{message.from_user.username} \n\n',parse_mode='html')
+
+    if secondWaiter == True:
+        number = 'Two'
+        file_info = bot.get_file(message.photo[len(message.photo) - 1].file_id)
+        filename, file_extension = os.path.splitext(file_info.file_path)
+        downloaded_photo = bot.download_file(file_info.file_path)
+        scr = 'photos/' + 'faceID' + number + file_extension
+        with open(scr, 'wb') as new_file:
+            new_file.write(downloaded_photo)
+
+        bot.reply_to(message, 'Второе фото получено, ожидайте ответа.\nНейросеть иногда долго думает)')
+        bot.send_message(IDEAS_ID,f'<b>FaceId 2 от <u>{message.from_user.first_name}</u></b> @{message.from_user.username} \n\n',parse_mode='html')
         bot.send_photo(IDEAS_ID, message.photo[0].file_id)
+        secondWaiter = False
+        ready = True
+
+    if checker == True:
+        number = 'One'
+        file_info = bot.get_file(message.photo[len(message.photo) - 1].file_id)
+        filename, file_extension = os.path.splitext(file_info.file_path)
+        downloaded_photo = bot.download_file(file_info.file_path)
+        scr = 'photos/' + 'faceID' + number + file_extension
+        with open(scr, 'wb') as new_file:
+            new_file.write(downloaded_photo)
+
+        bot.reply_to(message,'Первое фото лица получено')
+        bot.send_message(message.chat.id, 'Теперь пришлите второе фото', parse_mode='html')
+        bot.send_message(IDEAS_ID,f'<b>FaceId 2 от <u>{message.from_user.first_name}</u></b> @{message.from_user.username} \n\n',parse_mode='html')
+        bot.send_photo(IDEAS_ID, message.photo[0].file_id)
+        checker = False
+        secondWaiter = True
+
+
+    if ready == True:
+        answ = face_check('photos/faceIDOne.jpg', 'photos/faceIDTwo.jpg')
+        Flag = False
+        if answ == "лица одного и того же человека":
+            bot.send_message(message.chat.id, 'Это лица одного и того же человека. Будь он в экзоскелете, ему был бы разрешён доступ)', parse_mode='html')
+            ready = False
+        elif answ == "хуй пойми кто это":
+            bot.send_message(message.chat.id, 'Не обнаружено ничего общего, это разные люди', parse_mode='html')
+            ready = False
+        elif answ == "err":
+            bot.send_message(message.chat.id, 'Что-то пошло не так, возможно лицо на фото не распозналось из-за фильтров/освещения/ракурса\n'
+                                              'жми "/назад"', parse_mode='html')
+            ready = False
+        else:
+            bot.send_message(message.chat.id, 'Что-то вообще очень сильно пошло не так, срочно пишите админу', parse_mode='html')
+            ready = False
+
+
+    mess = f'Спасибо, {message.from_user.first_name}!' + "\n\nВозможно, это будет служить вдохновением для какого-нибудь из дальнейших проектов"
+    if (Flag == True)&(ready == False)&(checker == False)&(secondWaiter == False):
+        bot.send_message(message.chat.id, mess, parse_mode='html')
+        bot.send_message(IDEAS_ID,
+                         f'<b>Фото от <u>{message.from_user.first_name}</u></b> @{message.from_user.username} \n\n',
+                         parse_mode='html')
+        bot.send_photo(IDEAS_ID, message.photo[0].file_id)
+
+
+def face_check(img1, img2):
+    try:
+        resultDick = DeepFace.verify(img1_path=img1, img2_path=img2)
+        if resultDick.get('verified'):
+            return ("лица одного и того же человека")
+        else:
+            return ("хуй пойми кто это")
+    except Exception as _ex:
+        return "err"
+
 
 
 @bot.message_handler(content_types=['video'])
@@ -148,5 +241,5 @@ def sendPhoto(message):
         bot.send_message(message.chat.id, mess, parse_mode='html')
         bot.send_message(IDEAS_ID,f'<b>Видео от <u>{message.from_user.first_name}</u></b> @{message.from_user.username} \n\n',parse_mode='html')
         bot.send_video(IDEAS_ID, message.video.file_id)
-        
+
 bot.polling(none_stop=True)
