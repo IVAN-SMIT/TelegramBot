@@ -1,1 +1,19 @@
-hello world
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Telegram Bot</title>
+</head>
+<body>
+    <button onclick="sendMessage()">Send Message</button>
+
+    <script>
+        function sendMessage() {
+            var message = "Hello, bot!";
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "https://your-bot-server-url.com", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.send(JSON.stringify({ message: message }));
+        }
+    </script>
+</body>
+</html>
